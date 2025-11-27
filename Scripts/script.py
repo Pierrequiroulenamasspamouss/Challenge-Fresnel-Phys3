@@ -1,179 +1,135 @@
-import argparse
-import os
-import sys
-import numpy as np
 import pandas as pd
-
-#!/usr/bin/env python3
-"""
-script.py
-
-Usage:
-    python script.py --file data.xlsx [--sheet Sheet1] [--x XColumn] [--y Y1,Y2] [--out plot.png] [--show]
-
-This script opens an Excel file, parses numeric columns using pandas + numpy,
-and generates a graph using matplotlib. Numpy is used for numeric conversions
-and simple statistics.
-"""
-
-
+import numpy as np
 import matplotlib.pyplot as plt
 
+###########################################
+# 1) CHARGEMENT DES MESURES RÉELLES
+###########################################
 
-def parse_args():
-        p = argparse.ArgumentParser(description="Plot Excel data (uses numpy/pandas/matplotlib).")
-        p.add_argument("--file", "-f", required=True, help="Path to Excel file (.xlsx, .xls)")
-        p.add_argument("--sheet", "-s", default=0,
-                                     help="Sheet name or index (default: first sheet).")
-        p.add_argument("--x", help="Column name or zero-based index to use for x-axis (default: first column).")
-        p.add_argument("--y", help="Comma-separated column names or indices to plot as y (default: all other numeric columns).")
-        p.add_argument("--out", "-o", default="plot.png", help="Output image file (PNG).")
-        p.add_argument("--show", action="store_true", help="Show the plot interactively.")
-        return p.parse_args()
+df_real = pd.read_csv("mesures_reelles.csv")
 
+# Calculs utiles
+df_real["inv_p"] = 1 / df_real["Pavg_mm"].values
+df_real["inv_q"] = 1 / df_real["Qavg_mm"].values
 
-def load_excel(path, sheet):
-        if not os.path.isfile(path):
-                raise FileNotFoundError(f"File not found: {path}")
-        # pandas will handle sheet as name or index
-        df = pd.read_excel(path, sheet_name=sheet)
-        return df
+# Régression linéaire : inv_p = a * inv_q + b
+a_real, b_real = np.polyfit(df_real["inv_q"], df_real["inv_p"], 1)
+focale_reelle = 1 / b_real
 
+###########################################
+# 2) GRAPHIQUE DES MESURES RÉELLES
+###########################################
 
-def pick_columns(df, sel):
-        """
-        sel: None or comma-separated list of names or indices
-        Returns list of column labels
-        """
-        if sel is None:
-                return None
-        parts = [p.strip() for p in sel.split(",") if p.strip() != ""]
-        cols = []
-        for p in parts:
-                # try integer index
-                try:
-                        idx = int(p)
-                        cols.append(df.columns[idx])
-                except Exception:
-                        # treat as name
-                        if p in df.columns:
-                                cols.append(p)
-                        else:
-                                raise KeyError(f"Column '{p}' not found in sheet. Available: {list(df.columns)}")
-        return cols
+plt.figure(figsize=(8,6))
+plt.scatter(df_real["inv_q"], df_real["inv_p"], label="Mesures réelles")
+
+x_line = np.linspace(df_real["inv_q"].min(), df_real["inv_q"].max(), 100)
+y_line = a_real * x_line + b_real
+plt.plot(x_line, y_line, label="Régression", linewidth=2)
+
+plt.xlabel("1/q (mm⁻¹)")
+plt.ylabel("1/p (mm⁻¹)")
+plt.title("Mesures réelles – Loi des lentilles")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+print("\n--- RÉSULTATS RÉELS ---")
+print(f"A = {a_real:.6f}")
+print(f"B = {b_real:.6f}")
+print(f"Focale estimée (réelle) : f = {focale_reelle:.2f} mm")
 
 
-def to_numeric_series(s):
-        # coerce non-numeric to NaN, then drop NaN
-        return pd.to_numeric(s, errors="coerce")
+###########################################
+# 3) CHARGEMENT DES DONNÉES IMAGEJ
+###########################################
+
+df_img = pd.read_csv("Results.csv")
+
+# Pour rappel : alternance dans Results.csv :
+#   ligne impaire (index pair) = données p
+#   ligne paire (index impair) = données q
+# Exemple :
+#   3000mm → p = row0.length , q = row1.length
+#   2900mm → p = row2.length , q = row3.length
+#   ...
+#   1000mm → p = row? , q = row?
+#   900mm → ...
+#   600mm → 2 images → donc 4 lignes : p1,q1,p2,q2
+
+# On fabrique un tableau propre p/q
+p_values = df_img["Length"].iloc[0::2].reset_index(drop=True)
+q_values = df_img["Length"].iloc[1::2].reset_index(drop=True)
+
+# Distances nominales
+distances = [
+    3000,2900,2800,2700,2600,
+    2500,2400,2300,2200,2100,
+    2000,1900,1800,1700,1600,
+    1500,1400,1300,1200,1100,
+    1000,1000,  
+    900,900,
+    800,800,
+    700,700,
+    600
+
+]
+
+df_img2 = pd.DataFrame({
+    "distance_mm": distances[:len(p_values)],
+    "p_mm": p_values,
+    "q_mm": q_values
+})
+df_img2["p_mm"] = pd.to_numeric(df_img2["p_mm"], errors='coerce')
+df_img2["q_mm"] = pd.to_numeric(df_img2["q_mm"], errors='coerce')
+# Calculs
+df_img2["inv_p"] = 1 / df_img2["p_mm"]
+df_img2["inv_q"] = 1 / df_img2["q_mm"]
+
+# Régression
+a_img, b_img = np.polyfit(df_img2["inv_q"], df_img2["inv_p"], 1)
+focale_img = 1 / b_img
 
 
-def prepare_xy(df, x_sel, y_sel):
-        # Determine x column
-        if x_sel is None:
-                x_col = df.columns[0]
-        else:
-                x_col = x_sel
-        if isinstance(x_col, int):
-                x_col = df.columns[x_col]
+###########################################
+# 4) GRAPHIQUE DES MESURES IMAGEJ
+###########################################
 
-        # Determine y columns
-        if y_sel is None:
-                # all other columns that are numeric after coercion
-                candidate_cols = [c for c in df.columns if c != x_col]
-                numeric_cols = []
-                for c in candidate_cols:
-                        s = to_numeric_series(df[c])
-                        if s.notna().any():
-                                numeric_cols.append(c)
-                y_cols = numeric_cols
-        else:
-                y_cols = y_sel
+plt.figure(figsize=(8,6))
+plt.scatter(df_img2["inv_q"], df_img2["inv_p"], label="Mesures ImageJ")
 
-        if len(y_cols) == 0:
-                raise ValueError("No y columns selected or found to plot.")
+x_line2 = np.linspace(df_img2["inv_q"].min(), df_img2["inv_q"].max(), 100)
+y_line2 = a_img * x_line2 + b_img
+plt.plot(x_line2, y_line2, label="Régression", linewidth=2)
 
-        # Convert to numpy arrays, align and drop rows with NaN in x or all y's NaN
-        data = df.copy()
-        data[x_col] = to_numeric_series(data[x_col])
-        for c in y_cols:
-                data[c] = to_numeric_series(data[c])
+plt.xlabel("1/q (mm⁻¹)")
+plt.ylabel("1/p (mm⁻¹)")
+plt.title("Mesures ImageJ – Loi des lentilles")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 
-        # Drop rows where x is NaN
-        data = data.dropna(subset=[x_col])
-        # For convenience, drop rows where all selected y are NaN
-        data = data.dropna(subset=y_cols, how="all")
-
-        x = data[x_col].to_numpy(dtype=float)
-        ys = {c: data[c].to_numpy(dtype=float) for c in y_cols}
-        return x_col, y_cols, x, ys
+print("\n--- RÉSULTATS IMAGEJ ---")
+print(f"A = {a_img:.6f}")
+print(f"B = {b_img:.6f}")
+print(f"Focale estimée (ImageJ) : f = {focale_img:.2f} mm")
 
 
-def plot_data(filename, sheet, x_col, y_cols, x, ys, out_path, show):
-        plt.figure(figsize=(8, 5))
-        for c in y_cols:
-                y = ys[c]
-                # Some y arrays might contain NaN where x exists; mask them
-                mask = ~np.isnan(y) & ~np.isnan(x)
-                if mask.sum() == 0:
-                        print(f"Warning: column '{c}' has no valid numeric points, skipping.", file=sys.stderr)
-                        continue
-                x_masked = x[mask]
-                y_masked = y[mask]
-                mean = np.nanmean(y_masked)
-                std = np.nanstd(y_masked)
-                plt.plot(x_masked, y_masked, marker='o', linestyle='-', label=f"{c} (μ={mean:.3g}, σ={std:.3g})")
-
-        plt.xlabel(str(x_col))
-        plt.ylabel("Value")
-        title_sheet = f" - sheet: {sheet}" if sheet != 0 and sheet is not None else ""
-        plt.title(f"{os.path.basename(filename)}{title_sheet}")
-        plt.grid(True)
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(out_path, dpi=150)
-        print(f"Saved plot to {out_path}")
-        if show:
-                plt.show()
-        plt.close()
 
 
-def main():
-        args = parse_args()
-        try:
-                df = load_excel(args.file, args.sheet)
-        except Exception as e:
-                print(f"Error loading Excel file: {e}", file=sys.stderr)
-                sys.exit(1)
+"""
+# mesures reelles osef 600,274.5,300,325.5,51
 
-        try:
-                x_sel = None
-                y_sel = None
-                if args.x:
-                        # convert to column label (int index or name)
-                        try:
-                                xi = int(args.x)
-                                x_sel = df.columns[xi]
-                        except Exception:
-                                if args.x in df.columns:
-                                        x_sel = args.x
-                                else:
-                                        print(f"X column '{args.x}' not found.", file=sys.stderr)
-                                        sys.exit(1)
-                if args.y:
-                        y_sel = pick_columns(df, args.y)
-
-                x_col, y_cols, x, ys = prepare_xy(df, x_sel, y_sel)
-        except Exception as e:
-                print(f"Error preparing data: {e}", file=sys.stderr)
-                sys.exit(1)
-
-        try:
-                plot_data(args.file, args.sheet, x_col, y_cols, x, ys, args.out, args.show)
-        except Exception as e:
-                print(f"Error plotting data: {e}", file=sys.stderr)
-                sys.exit(1)
+#ImageJ
 
 
-if __name__ == "__main__":
-        main()
+
+59,289.479,125.838,54.721,253.311,1.878,229.659
+60,511.308,153.811,32.148,251.975,-177.879,406.670
+    
+61,132.357,132.309,6.506,253.889,-1.532,272.347
+62,231.271,110.164,5.000,252.667,-178.248,476.296
+
+"""
