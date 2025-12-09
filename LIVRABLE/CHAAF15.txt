@@ -1,0 +1,53 @@
+# Remarque :
+# ----------
+#    Ce fichier sera lu automatiquement à l'aide d'un programme python.
+#    Il est donc IMPÉRATIF de suivre consciencieusement les instructions en le complétant.
+#    Un fichier mal complété induisant une erreur dans la compilation du programme python ne sera pas évalué.
+#    Nous vous invitons à lire soigneusement ces instructions.
+#
+#
+# Instructions :
+#---------------
+#    TITRE : le titre du fichier doit commencer par 'CHA' (pour 'challenge') suivi de 'AF' (pour 'Augustin Fresnel'), votre numéro de groupe en DEUX chiffres (les groupes de 1 à 9 sont priés d'ajouter un 0 devant leur numéro), et finalement l'extension '.txt'.
+#    Ainsi, le groupe 1 doit rendre un fichier nommé 'CHAAF01.txt'.
+#
+#    MESURES : les mesures sont à présenter sous forme de colonnes.
+#    Il y a 6 colonnes à remplir :
+#         - la distance p mesurée (en pixel),
+#         - l'incertitude sur p (en pixel),
+#         - la distance q mesurée (en pixel),
+#         - l'incertitude sur q (en pixel),
+#         - le facteur de conversion de pixel à distance (en mm/pixel),
+#         - l'incertitude sur ce facteur (en mm/pixel),
+#    La séparation entre chaque colonne se fait à l'aide du caractère ';'.
+#    Les unités doivent être séparées des décimales par un POINT (et non une virgule).
+#    Cette en-tête peut rester dans le fichier, étant donné qu'elle correspond à un commentaire en python, elle n'est pas lue par le programme.
+#
+#    Ci-dessous, un exemple vous est proposé d'un ensemble de résultats correctement encodés. 
+#    Pour exploiter cet exemple, il vous suffira d'encoder, de manière conforme, les résultats de vos propres expériences.
+#
+#  Distance p [pixel] ; Delta p [pixel];  Distance q [pixel] ; Delta q [pixel]; Facteur de conversion [mm/pixel] ; Delta facteur de conversion [mm/pixel] 
+78.23 ; 3.85 ; 1460.77 ; 3.85 ; 0.513
+107.11 ; 3.17 ; 1831.25 ; 3.17 ; 0.6684
+110.77 ; 6.19 ; 1815.63 ; 6.19 ; 0.688
+119.06 ; 4.23 ; 1783.09 ; 4.23 ; 0.7045
+105.58 ; 3.16 ; 1718.32 ; 3.16 ; 0.7015
+119.39 ; 2.88 ; 1678.61 ; 2.88 ; 0.7192
+116.11 ; 3.26 ; 1620.05 ; 3.26 ; 0.7234
+121.74 ; 2.23 ; 1585.55 ; 2.23 ; 0.7423
+122.27 ; 3.14 ; 1500.67 ; 3.14 ; 0.7377
+117.34 ; 3.18 ; 1454.72 ; 3.18 ; 0.7486
+119.74 ; 2.87 ; 1314.26 ; 2.87 ; 0.717
+125.59 ; 2.19 ; 1261.79 ; 2.19 ; 0.7302
+127.97 ; 2.75 ; 1193.95 ; 2.75 ; 0.7344
+124.70 ; 1.86 ; 1140.79 ; 1.86 ; 0.7444
+122.25 ; 3.70 ; 1063.19 ; 3.70 ; 0.7409
+131.17 ; 3.27 ; 958.88 ; 3.27 ; 0.7267
+132.09 ; 3.16 ; 908.26 ; 3.16 ; 0.7431
+113.63 ; 4.23 ; 803.90 ; 4.23 ; 0.7058
+131.64 ; 2.35 ; 808.67 ; 2.35 ; 0.7836
+134.30 ; 2.86 ; 703.90 ; 2.86 ; 0.762
+148.36 ; 2.51 ; 689.84 ; 2.51 ; 0.8382
+154.23 ; 3.55 ; 555.79 ; 3.55 ; 0.7889
+145.68 ; 1.83 ; 506.31 ; 1.83 ; 0.815
+166.65 ; 4.27 ; 431.57 ; 4.27 ; 0.8546

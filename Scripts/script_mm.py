@@ -121,7 +121,7 @@ print(f"Focale estimée (ImageJ) : f = {focale_img:.2f} mm")
 
 """
 # mesures reelles osef 600,274.5,300,325.5,51
-
+25,600,274.5,300,325.5,51
 #ImageJ
 
 

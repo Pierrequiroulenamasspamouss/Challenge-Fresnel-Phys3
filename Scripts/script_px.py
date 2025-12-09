@@ -139,7 +139,7 @@ df_img2["q_pixels"] = pd.to_numeric(df_img2["q_pixels"], errors='coerce')
 
 # CALCUL DES BARRES D'ERREUR IMAGEJ (pixels)
 # 1. Convertir Incertitude_mm en pixels en utilisant PPU séquentiel
-uncertainty_mm_array = df_real["Incertitude_mm"].values
+uncertainty_mm_array = df_real["Incertitude_mm"].values/2
 uncertainty_pixels = uncertainty_mm_array * np.array(ppu_values)
 
 # 2. Appliquer la propagation de l'erreur aux valeurs en pixels
